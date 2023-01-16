@@ -32,7 +32,8 @@ class CycleGan:
                  lambdaValidation=1,
                  lambdaReconstr=10,
                  lambdaIdentity=1,
-                 genType=GenType.UNET) -> None:
+                 genType=GenType.UNET,
+                 epoch=0) -> None:
         self.inputDim = inputDim
         self.lr = learningRate
         self.beta1 = 0.5
@@ -43,7 +44,7 @@ class CycleGan:
         self.bufferMaxLength = 50
         self.channels = inputDim[2]
         
-        self.epoch = 0
+        self.epoch = epoch
         
         self.buffer_A = deque(maxlen=self.bufferMaxLength)
         self.buffer_B = deque(maxlen=self.bufferMaxLength)
@@ -84,7 +85,7 @@ class CycleGan:
             [ONES, ONES, inAs, inBs, inAs, inBs]
         )
         
-    def train(self, dataLoader:Loader, runFolder, epochs, testAid, testBid, batchSize=1, sampleInverval=150, epochSaveInterval=10):
+    def train(self, dataLoader:Loader, runFolder, epochs, testAid, testBid, batchSize=1, sampleInverval=150, epochSaveInterval=10, skipDiscriminator=False):
         starttime = datetime.now()
         
         # adversarial loss ground truth
@@ -96,23 +97,29 @@ class CycleGan:
             for epoch in range(self.epoch, epochs):
                 for batch_i, (imA, imB) in enumerate(dataLoader.load_batch()):
                     
-                    dLoss = self.trainDiscriminators(imA, imB, ONES, ZEROS)
+                    if not skipDiscriminator:
+                        dLoss = self.trainDiscriminators(imA, imB, ONES, ZEROS)
+                    else:
+                        la = self.dA.evaluate(self.gBA(imA), ZEROS)
+                        lb = self.dA.evaluate(self.gAB(imB), ZEROS)
+                        dLoss = 0.5 * np.add(la, lb)
                     gLoss = self.trainGenerators(imA, imB, ONES, ZEROS) 
                     
-                    time = datetime.now() - starttime
+                    now = datetime.now() - starttime
                     
                     print(f"[Epoch {epoch}/{epochs}] \
 [Batch {batch_i}] [D loss {dLoss[0]:.5f} / Acc {dLoss[1]*100:.1f}%] \
 [G loss {gLoss[0]:.5f} adv {np.sum(gLoss[1:3]):.3f} cyc {np.sum(gLoss[3:5]):.3f} id {np.sum(gLoss[5:7]):.3f}] \
-[Time {time}]\r", end="")
+[Time {now}]", end="\r")
                     
                     if batch_i % sampleInverval == 0:
                         self.sampleImages(dataLoader, runFolder, batch_i, epoch, testAid, testBid)
+                print()
                 if epoch % epochSaveInterval == 0:
                     self.combined.save_weights(os.path.join(runFolder, f"weights/weights-{epoch}.h5"))
                     self.combined.save_weights(os.path.join(runFolder, "weights/weights.h5"))
                     self.saveModel(runFolder)
-                print()
+                
                     
         except KeyboardInterrupt:
             print("Finishing early")
@@ -238,7 +245,7 @@ class CycleGan:
             genImages = np.clip(genImages, 0, 1)
             
             # plots
-            titles = ["original", "translated", "reconstructed", "cycle"]
+            titles = ["original", "translated", "reconstructed", "identity"]
             fig, axis = plt.subplots(row, coln, figsize=(12, 6))
             count = 0
             for i in range(row):
@@ -265,7 +272,7 @@ class CycleGan:
         pkl.dump(self, open(os.path.join(runFolder, "obj,pk1"), "wb"))
         
     def loadWeights(self, path:str):
-        self.combined.load_weights(os.path.join(path, "combined.h5"))
+        self.combined.load_weights(os.path.join(path, "model.h5"))
         self.dA.load_weights(os.path.join(path, "d_A.h5"))
         self.dB.load_weights(os.path.join(path, "d_B.h5"))
         self.gBA.load_weights(os.path.join(path, "g_BA.h5"))
