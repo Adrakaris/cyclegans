@@ -1,5 +1,6 @@
 from enum import Enum
 from glob import glob
+import math
 from typing import Tuple
 from PIL import ImageFont, Image, ImageDraw
 
@@ -83,6 +84,71 @@ class Loader:
         return i.astype(np.float32)
     
     
+class Sampler:
+    def __init__(self, fontURL) -> None:
+        self.fontURL = fontURL
+        
+    def generateImages(self, characters:str, res=128):
+            
+        font = ImageFont.truetype(self.fontURL, size=res-20)  # was 30
+        WIDTH = res-20
+        HEIGHT = int(WIDTH*1)
+        
+        # total image width
+        # imRows = math.ceil(len(characters) - colWid) 
+        out = []
+        for i, char in enumerate(characters):
+            img = Image.new("RGB", (res, res), color="white")
+            
+            draw = ImageDraw.Draw(img)
+            
+            draw.text(((res-WIDTH)/2, (res-HEIGHT)/2), char, font=font, fill=0, align="center")
+            
+            out.append(np.array(img))
+        return np.array(out)
+            
+    def stitchImages(self, images, characterRes=128, columns=16):
+        # # work out full image width and height
+        imRows = math.ceil(images.shape[0] / columns)
+        # rows = []
+        # # split list into rows
+        # for i in range(imRows):
+        #     rows.append(images[i*imRows:i*imRows+columns])
+        # # render every line
+        # lines = []
+        # for row in rows:
+        #     line = Image.new("RGB", (characterRes*imRows, characterRes*columns), color="white")
+        #     draw = ImageDraw.Draw(line)
+        #     for i, char in enumerate(row):
+        #         ic = Image.fromarray(char)
+        #         # draw.bitmap((i*characterRes, 0), )
+        #         line.paste(ic, (i*characterRes, 0))
+        #     lines.append(line)
+        # block = cv2.vconcat(lines)  # type:ignore
+        
+        BLANK = np.ones((128,128,3))
+        
+        rows = []
+        for i in range(imRows):
+            # print(f"row {i*columns} col {i*columns+columns}")
+            row = list(images[i*columns:i*columns+columns])
+            # print(f"len row {len(row)} row0 {row[0].shape}")
+            while len(row) != columns:
+                row.append(BLANK)
+            # print(f"len row {len(row)}")
+            row = cv2.hconcat(np.array(row))
+            # print(f"row shape {row.shape}")
+            # row = cv2.resize(row, )
+            # img = Image.new("RGB", (characterRes*columns, characterRes))
+            # img.paste(row, (0,0,characterRes,len(row)*characterRes))
+            # img.paste(row)
+            # rows.append(img)
+            rows.append(row)
+        block = cv2.vconcat(np.array(rows))  
+        
+        return block 
+    
+    
 class KindaLoadEverything(Loader):
     def __init__(self, dataA, dataB, res=(128,128)) -> None:
         super().__init__(dataA, dataB, res)
@@ -106,10 +172,6 @@ class KindaLoadEverything(Loader):
         self.yTrain = self.imgY[:propY]
         self.yTest = self.imgY[propY:]
         
-        # self.xTrain = np.ndarray(self.xTrain)
-        # self.xTest = np.ndarray(self.xTest)
-        # self.yTrain = np.ndarray(self.yTrain)
-        # self.yTest = np.ndarray(self.yTest)
         
     def loadAll(self):
         pathA = glob(self.dataA + "/*")

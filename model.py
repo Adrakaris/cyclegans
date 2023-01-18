@@ -10,7 +10,7 @@ import pickle as pkl
 import tensorflow as tf 
 keras = tf.keras
 
-from loader import Loader, Domain
+from loader import Loader, Domain, Sampler
 from components import Norm, convLeakyRelu, convBlock, convUpsampleUnet
 from keras.initializers import RandomNormal  # type:ignore
 from keras.layers import Input, UpSampling2D
@@ -256,6 +256,18 @@ class CycleGan:
                     count += 1
             fig.savefig(os.path.join(runFolder, f"images/{p}_{epoch}_{batchNo}.png"))
             plt.close()
+        
+    def predict(self, generator:Sampler, characters:str, res:int=128):
+
+        images = generator.generateImages(characters, res)
+        print(f"Images shape: {images.shape}")
+        outChars = self.gAB.predict(images)
+        print(f"Output shape: {outChars.shape}")
+        
+        outChars = 0.5 * outChars + 0.5
+        outChars = np.clip(outChars, 0, 1)
+        
+        return outChars
             
     def plotModels(self, runPath):
         plot_model(self.gAB, runPath + os.sep + "vis/gen_ab.png", show_shapes=True)
@@ -277,3 +289,6 @@ class CycleGan:
         self.dB.load_weights(os.path.join(path, "d_B.h5"))
         self.gBA.load_weights(os.path.join(path, "g_BA.h5"))
         self.gAB.load_weights(os.path.join(path, "g_AB.h5"))
+
+    def loadCombinedFromCheckpoint(self, path:str):
+        self.combined.load_weights(path)

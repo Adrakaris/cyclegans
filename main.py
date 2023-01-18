@@ -1,3 +1,4 @@
+from distutils.command import build
 import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import matplotlib.pyplot as plt 
@@ -12,7 +13,7 @@ absl.logging.set_verbosity(absl.logging.ERROR)
 BUILD = "build"
 LOAD = "load"
 
-RUN_ID = "0003"
+RUN_ID = "0004"
 DOM_A = "./data/a"
 DOM_B = "./data/b"
 RUNFOLDER = os.path.join("run", RUN_ID)
@@ -22,13 +23,16 @@ if not os.path.exists(RUNFOLDER):
     os.mkdir(RUNFOLDER + "/vis")
     os.mkdir(RUNFOLDER + "/images")
     os.mkdir(RUNFOLDER + "/weights")
+else:
+    print(f"The current run {RUN_ID} already has a folder, continue? (KeyboardInterrupt to exit)")
+    input()
 
-mode = LOAD  # TODO
+mode = BUILD
 train = True 
 
-START_EPOCH = 85  # TODO
+START_EPOCH = 0 
 SKIPDIS = False
-SAVEINTERVAL = 10  # 10
+SAVEINTERVAL = 7  # 10
 #endregion
 
 loader = KindaLoadEverything(DOM_A, DOM_B)
