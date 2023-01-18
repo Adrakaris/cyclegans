@@ -257,11 +257,14 @@ class CycleGan:
             fig.savefig(os.path.join(runFolder, f"images/{p}_{epoch}_{batchNo}.png"))
             plt.close()
         
-    def predict(self, generator:Sampler, characters:str, res:int=128):
-
+    def predict(self, generator:Sampler, characters:str, res:int=128, direction="a"):
+        """direction can be a or b"""
         images = generator.generateImages(characters, res)
         print(f"Images shape: {images.shape}")
-        outChars = self.gAB.predict(images)
+        if direction == "a":
+            outChars = self.gAB.predict(images)
+        else:
+            outChars = self.gBA.predict(images)
         print(f"Output shape: {outChars.shape}")
         
         outChars = 0.5 * outChars + 0.5
