@@ -1,5 +1,6 @@
 from collections import deque
 from datetime import datetime
+from mimetypes import init
 import os
 from enum import Enum
 import random
@@ -11,7 +12,7 @@ import tensorflow as tf
 keras = tf.keras
 
 from loader import Loader, Domain, Sampler
-from components import Norm, convLeakyRelu, convBlock, convUpsampleUnet
+from components import Norm, convLeakyRelu, convBlock, convTransposeBlock, convUpsampleUnet, resBlock
 from keras.initializers import RandomNormal  # type:ignore
 from keras.layers import Input, UpSampling2D
 from keras.layers.convolutional import Conv2D
@@ -142,7 +143,8 @@ class CycleGan:
             self.gAB = self.generatorUnet("unet_g_A_to_B")
             self.gBA = self.generatorUnet("unet_g_B_to_A")
         else:
-            raise NotImplementedError("Havent done it yet")
+            self.gAB = self.generatorResnet("resnet_g_A_to_B")
+            self.gBA = self.generatorResnet("resnet_g_B_to_A")
         
         self.dA.trainable = False
         self.dB.trainable = False 
@@ -212,6 +214,26 @@ class CycleGan:
         
         return Model(img, out, name=name)
 
+    def generatorResnet(self, name):
+        img = Input(shape=self.inputDim)
+        
+        # downsampling
+        d1 = convBlock(img, 32, 7, 1, initialiser=self.winit)
+        d2 = convBlock(d1, 64, 3, 2, initialiser=self.winit)
+        d3 = convBlock(d2, 128, 3, 2, initialiser=self.winit)
+        
+        # resnet
+        r = d3
+        for _ in range(9):
+            r = resBlock(r, 128, 3, initialiser=self.winit)
+        
+        # upsampling
+        u1 = convTransposeBlock(r, 64, 3, initialiser=self.winit)
+        u2 = convTransposeBlock(u1, 32, 3, initialiser=self.winit)
+        out = Conv2D(filters=3, kernel_size=7, strides=1, padding="same", kernel_initializer=self.winit, activation="tanh")(u2)
+        
+        return Model(img, out, name=name)
+        
 
     def sampleImages(self, dataLoader:Loader, runFolder, batchNo, epoch, aIndex, bIndex):
         row,coln = 2,4

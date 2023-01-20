@@ -1,13 +1,14 @@
 
 from typing import Any
+from urllib.request import install_opener
 from matplotlib.pyplot import axis
 import tensorflow as tf
 keras = tf.keras 
 
 from enum import Enum 
 
-from keras.layers.convolutional import Conv2D
-from keras.layers import BatchNormalization, LeakyReLU, ReLU, UpSampling2D, Dropout, Concatenate
+from keras.layers.convolutional import Conv2D, Conv2DTranspose
+from keras.layers import BatchNormalization, LeakyReLU, ReLU, UpSampling2D, Dropout, Concatenate, add
 from tensorflow_addons.layers import InstanceNormalization
 
 class Norm(Enum):
@@ -60,3 +61,22 @@ def convUpsampleUnet(x, skip, filters:int, kernel:int, antistride=2, norm=Norm.I
         y = Dropout(dropoutRate)(y)
     y = Concatenate()([y, skip])
     return y
+
+def convTransposeBlock(x, filters:int, kernel:int, antistride=2, initialiser:Any="random_normal"):
+    y = Conv2DTranspose(filters=filters, kernel_size=kernel, strides=antistride, padding="same", kernel_initializer=initialiser)(x)
+    y = InstanceNormalization(axis=-1, center=False, scale=False)(y)
+    y = ReLU()(y)
+    return y
+
+def resBlock(x, filters:int, kernel:int, initialiser:Any="random_normal"):
+    """y is put through two conv layers, and x is skipped across them and added on
+    
+    note: original book uses reflectionPadding2D, but I do not
+    
+    Stride is always 1"""
+    y = Conv2D(filters=filters, kernel_size=kernel, strides=1, padding="same", kernel_initializer=initialiser)(x)
+    y = InstanceNormalization(axis=-1, center=False, scale=False)(y)
+    y = ReLU()(y)
+    y = Conv2D(filters=filters, kernel_size=kernel, strides=1, padding="same", kernel_initializer=initialiser)(y)
+    y = InstanceNormalization(axis=-1, center=False, scale=False)(y)
+    return add([y, x])  # x is skip layer

@@ -3,7 +3,7 @@ import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import matplotlib.pyplot as plt 
 
-from model import CycleGan
+from model import CycleGan, GenType
 from loader import KindaLoadEverything
 
 import absl.logging
@@ -13,7 +13,7 @@ absl.logging.set_verbosity(absl.logging.ERROR)
 BUILD = "build"
 LOAD = "load"
 
-RUN_ID = "0004"
+RUN_ID = "0005-RESNET"
 DOM_A = "./data/a"
 DOM_B = "./data/b"
 RUNFOLDER = os.path.join("run", RUN_ID)
@@ -32,13 +32,14 @@ train = True
 
 START_EPOCH = 0 
 SKIPDIS = False
-SAVEINTERVAL = 7  # 10
+SAVEINTERVAL = 5  # 10
 #endregion
 
 loader = KindaLoadEverything(DOM_A, DOM_B)
 
 
-gan = CycleGan(inputDim=(128,128,3), epoch=START_EPOCH)  
+gan = CycleGan(inputDim=(128,128,3), epoch=START_EPOCH, genType=GenType.RESNET)  
+gan.plotModels(RUNFOLDER)
 
 if mode == BUILD:
     gan.saveModel(RUNFOLDER)
@@ -59,7 +60,7 @@ if mode != BUILD or START_EPOCH != 0 or SKIPDIS:
 gan.gAB.summary()
 gan.dA.summary()
 gan.combined.summary()
-gan.plotModels(RUNFOLDER)
+
 
 
 gan.train(
