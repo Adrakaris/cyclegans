@@ -14,7 +14,7 @@ keras = tf.keras
 from loader import Loader, Domain, Sampler
 from components import Norm, convLeakyRelu, convBlock, convTransposeBlock, convUpsampleUnet, resBlock
 from keras.initializers import RandomNormal  # type:ignore
-from keras.layers import Input, UpSampling2D
+from keras.layers import Input, UpSampling2D, Concatenate
 from keras.layers.convolutional import Conv2D
 from keras.models import Model
 from keras.optimizers import Adam
@@ -142,9 +142,12 @@ class CycleGan:
         if self.genType == GenType.UNET:
             self.gAB = self.generatorUnet("unet_g_A_to_B")
             self.gBA = self.generatorUnet("unet_g_B_to_A")
-        else:
+        elif self.genType == GenType.RESNET:
             self.gAB = self.generatorResnet("resnet_g_A_to_B")
             self.gBA = self.generatorResnet("resnet_g_B_to_A")
+        elif self.genType == GenType.HCDENS:
+            self.gAB = self.generatorDensenet("densnet_g_A_to_B")
+            self.gBA = self.generatorDensenet("densnet_g_B_to_A")
         
         self.dA.trainable = False
         self.dB.trainable = False 
@@ -233,7 +236,32 @@ class CycleGan:
         out = Conv2D(filters=3, kernel_size=7, strides=1, padding="same", kernel_initializer=self.winit, activation="tanh")(u2)
         
         return Model(img, out, name=name)
+
+    def generatorDensenet(self, name):
+        img = Input(shape=self.inputDim)
         
+        # downsampling
+        e1 = convBlock(img, 32, 7, 1, initialiser=self.winit)
+        e2 = convBlock(e1, 64, 3, 2, initialiser=self.winit)
+        e3 = convBlock(e2, 128, 3, 2, initialiser=self.winit)
+        
+        # dense block
+        d1 = convBlock(e3, 256, 3, 1, initialiser=self.winit)
+        d2 = convBlock(d1, 256, 3, 1, initialiser=self.winit)
+        d2conc = Concatenate()([d1, d2])
+        d3 = convBlock(d2conc, 256, 3, 1, initialiser=self.winit)
+        d3conc = Concatenate()([d1,d2,d3])
+        d4 = convBlock(d3conc, 256, 3, 1, initialiser=self.winit)
+        d4conc = Concatenate()([d1, d2, d3, d4])
+        d5 = convBlock(d4conc, 128, 3, 1, initialiser=self.winit)
+        
+        # upsampling
+        u1 = convTransposeBlock(d5, 64, 3, initialiser=self.winit)
+        u2 = convTransposeBlock(u1, 32, 3, initialiser=self.winit)
+        out = Conv2D(filters=3, kernel_size=7, strides=1, padding="same", kernel_initializer=self.winit, activation="tanh")(u2)
+        
+        return Model(img, out, name=name)
+
 
     def sampleImages(self, dataLoader:Loader, runFolder, batchNo, epoch, aIndex, bIndex):
         row,coln = 2,4
