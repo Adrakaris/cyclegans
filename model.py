@@ -12,8 +12,8 @@ import tensorflow as tf
 keras = tf.keras
 
 from loader import Loader, Domain, Sampler
-from components import Norm, convLeakyRelu, convBlock, convTransposeBlock, convUpsampleUnet, resBlock
-from keras.initializers import RandomNormal  # type:ignore
+from components import Norm, convLeakyRelu, convBlock, convTransposeBlock, convUpsampleUnet, deformConvBlock, resBlock
+from keras.initializers import RandomNormal, HeNormal  # type:ignore
 from keras.layers import Input, UpSampling2D, Concatenate
 from keras.layers.convolutional import Conv2D
 from keras.models import Model
@@ -24,6 +24,8 @@ class GenType(Enum):
     UNET = "unet"
     RESNET = "resnet"
     HCDENS = "dens"
+    DENS_SKIP = "dens_skip"
+    DEFORMDENS = "dfd"
 
 
 class CycleGan:
@@ -35,6 +37,20 @@ class CycleGan:
                  lambdaIdentity=1,
                  genType=GenType.UNET,
                  epoch=0) -> None:
+        
+        """
+        CycleGAN model.
+        
+        Steps:
+        
+        - Create data loader
+        - Create cyclegan with desired architecture (enum GenType)
+        - plot the models if you want
+        - train using dataloader
+        
+        see `main.py`       
+        
+        """
         self.inputDim = inputDim
         self.lr = learningRate
         self.beta1 = 0.5
@@ -55,6 +71,7 @@ class CycleGan:
         
         # weight initialiser
         self.winit = RandomNormal(seed=42, mean=0, stddev=0.02)
+        self.heinit = HeNormal(seed=42)
         
         self.compileModels()
     
@@ -148,6 +165,12 @@ class CycleGan:
         elif self.genType == GenType.HCDENS:
             self.gAB = self.generatorDensenet("densnet_g_A_to_B")
             self.gBA = self.generatorDensenet("densnet_g_B_to_A")
+        elif self.genType == GenType.DENS_SKIP:
+            self.gAB = self.generatorDensenetWithSkip("densSkipNet_g_A_to_B")
+            self.gBA = self.generatorDensenetWithSkip("densSkipNet_g_B_to_A")
+        elif self.genType == GenType.DEFORMDENS:
+            self.gAB = self.generatorDeformableDensenet("deformDense_g_A_to_B")
+            self.gBA = self.generatorDeformableDensenet("deformDense_g_B_to_A")
         
         self.dA.trainable = False
         self.dB.trainable = False 
@@ -254,6 +277,57 @@ class CycleGan:
         d4 = convBlock(d3conc, 256, 3, 1, initialiser=self.winit)
         d4conc = Concatenate()([d1, d2, d3, d4])
         d5 = convBlock(d4conc, 128, 3, 1, initialiser=self.winit)
+        
+        # upsampling
+        u1 = convTransposeBlock(d5, 64, 3, initialiser=self.winit)
+        u2 = convTransposeBlock(u1, 32, 3, initialiser=self.winit)
+        out = Conv2D(filters=3, kernel_size=7, strides=1, padding="same", kernel_initializer=self.winit, activation="tanh")(u2)
+        
+        return Model(img, out, name=name)
+
+    def generatorDensenetWithSkip(self, name):
+        img = Input(shape=self.inputDim)
+        
+        # downsampling
+        e1 = convBlock(img, 32, 7, 1, initialiser=self.winit)
+        e2 = convBlock(e1, 64, 3, 2, initialiser=self.winit)
+        e3 = convBlock(e2, 128, 3, 2, initialiser=self.winit)
+        
+        # dense block
+        d1 = convBlock(e3, 256, 3, 1, initialiser=self.winit)
+        d2 = convBlock(d1, 256, 3, 1, initialiser=self.winit)
+        d2conc = Concatenate()([d1, d2])
+        d3 = convBlock(d2conc, 256, 3, 1, initialiser=self.winit)
+        d3conc = Concatenate()([d1,d2,d3])
+        d4 = convBlock(d3conc, 256, 3, 1, initialiser=self.winit)
+        d4conc = Concatenate()([d1, d2, d3, d4])
+        d5 = convBlock(d4conc, 128, 3, 1, initialiser=self.winit)
+        
+        # upsampling with feature skip - regular convolution
+        u1 = convUpsampleUnet(d5, e2, 64, 3, initialiser=self.winit)
+        u2 = convUpsampleUnet(u1, e1, 32, 3, initialiser=self.winit)
+        out = Conv2D(filters=3, kernel_size=7, strides=1, padding="same", kernel_initializer=self.winit, activation="tanh")(u2)
+        
+        return Model(img, out, name=name)
+    
+    def generatorDeformableDensenet(self, name):
+        """Densenet architecture with He initialisation on deform conv layers"""
+        img = Input(shape=self.inputDim)
+        
+        # downsampling
+        e1 = convBlock(img, 32, 7, 1, initialiser=self.winit)
+        e2 = convBlock(e1, 64, 3, 2, initialiser=self.winit)
+        e3 = convBlock(e2, 128, 3, 2, initialiser=self.winit)
+        
+        # dense block
+        d1 = deformConvBlock(e3, 256, 3, 1, initialiser=self.heinit)
+        d2 = deformConvBlock(d1, 256, 3, 1, initialiser=self.heinit)
+        d2conc = Concatenate()([d1, d2])
+        d3 = deformConvBlock(d2conc, 256, 3, 1, initialiser=self.heinit)
+        d3conc = Concatenate()([d1,d2,d3])
+        d4 = deformConvBlock(d3conc, 256, 3, 1, initialiser=self.heinit)
+        d4conc = Concatenate()([d1, d2, d3, d4])
+        d5 = deformConvBlock(d4conc, 128, 3, 1, initialiser=self.heinit)
         
         # upsampling
         u1 = convTransposeBlock(d5, 64, 3, initialiser=self.winit)

@@ -13,7 +13,7 @@ absl.logging.set_verbosity(absl.logging.ERROR)
 BUILD = "build"
 LOAD = "load"
 
-RUN_ID = "0006-DENSENET"
+RUN_ID = "0007-DENSE_SKIP"
 DOM_A = "./data/a"
 DOM_B = "./data/b"
 RUNFOLDER = os.path.join("run", RUN_ID)
@@ -38,7 +38,7 @@ SAVEINTERVAL = 5  # 10
 loader = KindaLoadEverything(DOM_A, DOM_B)
 
 
-gan = CycleGan(inputDim=(128,128,3), epoch=START_EPOCH, genType=GenType.HCDENS)  
+gan = CycleGan(inputDim=(128,128,3), epoch=START_EPOCH, genType=GenType.DENS_SKIP)  
 gan.plotModels(RUNFOLDER)
 
 if mode == BUILD:
