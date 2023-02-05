@@ -19,7 +19,6 @@ from keras.layers.convolutional import Conv2D
 from keras.models import Model
 from keras.optimizers import Adam
 from keras.utils import plot_model
-from deformable_conv.deform_layer import DeformableConv2D as ConvOffset2D
 
 class GenType(Enum):
     UNET = "unet"
@@ -170,7 +169,6 @@ class CycleGan:
             self.gAB = self.generatorDensenetWithSkip("densSkipNet_g_A_to_B")
             self.gBA = self.generatorDensenetWithSkip("densSkipNet_g_B_to_A")
         elif self.genType == GenType.DEFORMDENS:
-            # raise Exception("this doesn't work well")
             self.gAB = self.generatorDeformableDensenet("deformDense_g_A_to_B")
             self.gBA = self.generatorDeformableDensenet("deformDense_g_B_to_A")
         
@@ -323,24 +321,15 @@ class CycleGan:
         e2 = convBlock(e1, 64, 3, 2, initialiser=self.winit)
         e3 = convBlock(e2, 128, 3, 2, initialiser=self.winit)
         
-        # dense block with convolution
-        d1off = ConvOffset2D(128, kernel_initializer=self.heinit, name="deform-1")(e3)
-        d1 = convBlock(d1off, 256, 3, 1, initialiser=self.winit)
-        
-        d2off = ConvOffset2D(256, kernel_initializer=self.heinit, name="deform-2")(d1)
-        d2 = convBlock(d2off, 256, 3, 1, initialiser=self.winit)
-        
+        # dense block
+        d1 = deformConvBlock(e3, 256, 3, 1, initialiser=self.heinit)
+        d2 = deformConvBlock(d1, 256, 3, 1, initialiser=self.heinit)
         d2conc = Concatenate()([d1, d2])
-        d3off = ConvOffset2D(256*2, kernel_initializer=self.heinit, name="deform-3")(d2conc)
-        d3 = convBlock(d3off, 256, 3, 1, initialiser=self.winit)
-        
+        d3 = deformConvBlock(d2conc, 256, 3, 1, initialiser=self.heinit)
         d3conc = Concatenate()([d1,d2,d3])
-        d4off = ConvOffset2D(256*3, kernel_initializer=self.heinit, name="deform-4")(d3conc)
-        d4 = convBlock(d4off, 256, 3, 1, initialiser=self.winit)
-        
+        d4 = deformConvBlock(d3conc, 256, 3, 1, initialiser=self.heinit)
         d4conc = Concatenate()([d1, d2, d3, d4])
-        d5off = ConvOffset2D(256*4, kernel_initializer=self.heinit, name="deform-5")(d4conc)
-        d5 = convBlock(d5off, 128, 3, 1, initialiser=self.winit)
+        d5 = deformConvBlock(d4conc, 128, 3, 1, initialiser=self.heinit)
         
         # upsampling
         u1 = convTransposeBlock(d5, 64, 3, initialiser=self.winit)

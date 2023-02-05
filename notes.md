@@ -21,7 +21,9 @@ Densenet:
 Densenet with conv skip layers:
     Doesn't work
 
-
+Deformable Densenet:
+    Kinda works
+    But also is deathly slow :skull:
 
 Plans:
 

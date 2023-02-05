@@ -1,0 +1,5 @@
+Thank you to smallsunsun1 for making a deforable convolution that actually works.
+
+https://github.com/smallsunsun1/deformable_conv_v2
+
+haiiya.

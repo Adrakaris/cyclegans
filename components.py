@@ -8,16 +8,21 @@ keras = tf.keras
 from enum import Enum 
 
 from keras.layers.convolutional import Conv2D, Conv2DTranspose
-from keras.layers import BatchNormalization, LeakyReLU, ReLU, UpSampling2D, Dropout, Concatenate, add
+from keras.layers import BatchNormalization, LeakyReLU, ReLU, UpSampling2D, Dropout, Concatenate, add, Layer, Lambda
 from tensorflow_addons.layers import InstanceNormalization
 from tensorlayer.layers import DeformableConv2d
-from keras.regularizers import L1
+from keras.regularizers import l1
+# from deformConvAn import DeformableConvLayer
+from deformable_conv.deform_layer import DeformableConv2D as ConvOffset2D
 
 class Norm(Enum):
     BN = "bn"
     IN = "in" 
     NONE = "none"
 
+
+# l = Lambda()
+    
 
 def convLeakyRelu(x, filters:int, kernel:int=4, stride:int=2, norm:Norm=Norm.IN, initialiser:Any="random_normal"):
     """Leaky Relu convolution with normalisation for discriminator"""
@@ -90,28 +95,28 @@ def resBlock(x, filters:int, kernel:int, initialiser:Any="random_normal"):
     y = InstanceNormalization(axis=-1, center=False, scale=False)(y)
     return add([y, x])  # x is skip layer
 
-def deformConvBlock(x, filters:int, kernel:int, stride=1, initialiser:Any="random_normal", reg_lambda=10):
+def deformConvBlock(x, inFilters:int, outFilters:int, kernel:int, stride:int=1, initialiser:Any="random_normal", reg_lambda=10):
     """
     Deformable convolution
     
     Using padding "same"
-    DeformConv2D -> InstNorm -> ReLU
+    DeformConv2D -> Conv2D -> InstNorm -> ReLU
     """
-    # offset layer required for the deform layer to work
-    offset = Conv2D(
-        filters=2*kernel*kernel, 
-        kernel_size=kernel, 
-        kernel_initializer=initialiser, 
-        kernel_regularizer=L1(reg_lambda)
-    )(x)
     
-    y = DeformableConv2d(
-        offset_layer=offset,
-        n_filter=filters,
-        filter_size=(kernel, kernel),
-        W_init=initialiser,
-        b_init=keras.initializers.zeros()  # type:ignore
+    
+    off = ConvOffset2D(
+        filters=inFilters,
+        kernel_size=(kernel, kernel),
+        strides=1,
+        kernel_initializer=initialiser,
+        kernel_regularizer=l1(reg_lambda),
+        # padding="same"
     )(x)
+    y = Conv2D(filters=outFilters,
+               kernel_size=kernel,
+               strides=(stride, stride),
+               padding="same",
+               kernel_initializer=initialiser)(off)
     y = InstanceNormalization(axis=-1, center=False, scale=False)(y)
     y = ReLU()(y)
     

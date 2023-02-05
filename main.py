@@ -13,7 +13,7 @@ absl.logging.set_verbosity(absl.logging.ERROR)
 BUILD = "build"
 LOAD = "load"
 
-RUN_ID = "0007-DENSE_SKIP"
+RUN_ID = "0011-DEFORM-DENS"
 DOM_A = "./data/a"
 DOM_B = "./data/b"
 RUNFOLDER = os.path.join("run", RUN_ID)
@@ -27,18 +27,18 @@ else:
     print(f"The current run {RUN_ID} already has a folder, continue? (KeyboardInterrupt to exit)")
     input()
 
-mode = BUILD
+mode = LOAD
 train = True 
 
-START_EPOCH = 0 
+START_EPOCH = 21 
 SKIPDIS = False
-SAVEINTERVAL = 5  # 10
+SAVEINTERVAL = 3  # 10
 #endregion
 
 loader = KindaLoadEverything(DOM_A, DOM_B)
 
 
-gan = CycleGan(inputDim=(128,128,3), epoch=START_EPOCH, genType=GenType.DENS_SKIP)  
+gan = CycleGan(inputDim=(128,128,3), epoch=START_EPOCH, genType=GenType.DEFORMDENS)  
 gan.plotModels(RUNFOLDER)
 
 if mode == BUILD:
@@ -61,7 +61,7 @@ gan.gAB.summary()
 gan.dA.summary()
 gan.combined.summary()
 
-
+input("Press enter to start training")
 
 gan.train(
     dataLoader=loader,
