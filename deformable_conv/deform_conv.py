@@ -1,12 +1,12 @@
 import tensorflow as tf
 
-@tf.function(jit_compile=True)
+# @tf.function(jit_compile=True)
 def tf_flatten(a):
     """Flatten tensor"""
     return tf.reshape(a, [-1])
 
 
-@tf.function(jit_compile=True)
+# @tf.function(jit_compile=True)
 def tf_repeat(a, repeats, axis=0):
     a = tf.expand_dims(a, -1)
     a = tf.tile(a, [1, repeats])
@@ -14,7 +14,7 @@ def tf_repeat(a, repeats, axis=0):
     return a
 
 
-@tf.function(jit_compile=True)
+# @tf.function(jit_compile=True)
 def tf_map_coordinates(input, coords):
     """
 
@@ -37,7 +37,7 @@ def tf_map_coordinates(input, coords):
     return mapped_vals
 
 
-@tf.function(jit_compile=True)
+# @tf.function(jit_compile=True)
 def tf_batch_map_coordinates(input, coords):
     """
     Batch version of tf_map_coordinates
@@ -77,7 +77,7 @@ def tf_batch_map_coordinates(input, coords):
     return mapped_vals
 
 
-@tf.function(jit_compile=True)
+# @tf.function(jit_compile=True)
 def tf_batch_map_offsets(input, offsets):
     """
 

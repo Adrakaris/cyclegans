@@ -27,25 +27,14 @@ else:
     print(f"The current run {RUN_ID} already has a folder, continue? (KeyboardInterrupt to exit)")
     input()
 
-mode = LOAD
+mode = BUILD
 train = True 
 
-START_EPOCH = 21 
+START_EPOCH = 0
 SKIPDIS = False
 SAVEINTERVAL = 3  # 10
 #endregion
 
-loader = KindaLoadEverything(DOM_A, DOM_B)
-
-
-gan = CycleGan(inputDim=(128,128,3), epoch=START_EPOCH, genType=GenType.DEFORMDENS)  
-gan.plotModels(RUNFOLDER)
-
-if mode == BUILD:
-    gan.saveModel(RUNFOLDER)
-else:
-    gan.loadWeights(RUNFOLDER)
-    
 print(f"The run number is {RUN_ID}")
 if mode != BUILD or START_EPOCH != 0 or SKIPDIS:
     if mode != BUILD:
@@ -56,6 +45,21 @@ if mode != BUILD or START_EPOCH != 0 or SKIPDIS:
         print("The gan will be configured to not train the discriminator")
     print(f"Are you sure you want to continue? (KeyboardInterrupt to exit)")
     input()
+
+loader = KindaLoadEverything(DOM_A, DOM_B)
+
+
+gan = CycleGan(inputDim=(128,128,3), epoch=START_EPOCH, genType=GenType.DEFORMDENS)  
+gan.plotModels(RUNFOLDER)
+
+
+
+if mode == BUILD:
+    gan.saveModel(RUNFOLDER)
+else:
+    gan.loadWeights(RUNFOLDER)
+    
+
     
 gan.gAB.summary()
 gan.dA.summary()

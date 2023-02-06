@@ -200,7 +200,7 @@ class CycleGan:
         self.combined.compile(
             loss=["mse", "mse", "mae", "mae", "mae", "mae"],
             loss_weights=[self.lamValid, self.lamValid, self.lamRec, self.lamRec, self.lamId, self.lamId],
-            optimizer=Adam(self.lr, self.beta1)
+            optimizer=Adam(self.lr, self.beta1),
         )
         
         self.dA.trainable=True
