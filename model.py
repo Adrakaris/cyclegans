@@ -37,7 +37,10 @@ class CycleGan:
                  lambdaReconstr=10,
                  lambdaIdentity=1,
                  genType=GenType.UNET,
-                 epoch=0) -> None:
+                 epoch=0,
+                 advLoss="mse",
+                 cycleLoss="mae",
+                 idLoss="mae") -> None:
         
         """
         CycleGAN model.
@@ -61,6 +64,9 @@ class CycleGan:
         self.genType = genType
         self.bufferMaxLength = 50
         self.channels = inputDim[2]
+        self.advLoss = advLoss
+        self.cycleLoss = cycleLoss
+        self.idLoss = idLoss
         
         self.epoch = epoch
         
@@ -198,7 +204,7 @@ class CycleGan:
             outputs=[validA, validB, recA, recB, idA, idB]
         )
         self.combined.compile(
-            loss=["mse", "mse", "mae", "mae", "mae", "mae"],
+            loss=[self.advLoss, self.advLoss, self.cycleLoss, self.cycleLoss, self.idLoss, self.idLoss],
             loss_weights=[self.lamValid, self.lamValid, self.lamRec, self.lamRec, self.lamId, self.lamId],
             optimizer=Adam(self.lr, self.beta1),
         )

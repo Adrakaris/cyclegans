@@ -13,7 +13,7 @@ absl.logging.set_verbosity(absl.logging.ERROR)
 BUILD = "build"
 LOAD = "load"
 
-RUN_ID = "0011-DEFORM-DENS"
+RUN_ID = "0014-DENS-MSLOGLOSSE"
 DOM_A = "./data/a"
 DOM_B = "./data/b"
 RUNFOLDER = os.path.join("run", RUN_ID)
@@ -32,7 +32,7 @@ train = True
 
 START_EPOCH = 0
 SKIPDIS = False
-SAVEINTERVAL = 3  # 10
+SAVEINTERVAL = 4  # 10
 #endregion
 
 print(f"The run number is {RUN_ID}")
@@ -49,7 +49,11 @@ if mode != BUILD or START_EPOCH != 0 or SKIPDIS:
 loader = KindaLoadEverything(DOM_A, DOM_B)
 
 
-gan = CycleGan(inputDim=(128,128,3), epoch=START_EPOCH, genType=GenType.DEFORMDENS)  
+gan = CycleGan(inputDim=(128,128,3), 
+               epoch=START_EPOCH, 
+               genType=GenType.HCDENS, 
+               lambdaValidation=2,
+               advLoss="mse")  
 gan.plotModels(RUNFOLDER)
 
 

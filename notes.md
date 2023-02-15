@@ -22,10 +22,17 @@ Densenet with conv skip layers:
     Doesn't work
 
 Deformable Densenet:
-    Kinda works
-    But also is deathly slow :skull:
+    Works, slightly better than densenet
+    But also is deathly slow :skull: like 6x slower
+
+All of these, discriminator accuracy at 100 ~ generator too weak
+
+Densenet:
+    Changing the lambda reconstruction to 5 (putting adversarial doubling) - run 12 doesnt do much
+    Changing adversarial to use log loss - run 13 - doesn't converge
+    Changing to mean squared log error - run 14 - working... kinda works, nothing special.
 
 Plans:
 
-- Try Deformable Conv Layer in UNet
+- Try Deformable Conv Layer in UNet DONE
 - Try ResNet DONE
