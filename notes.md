@@ -31,6 +31,7 @@ Densenet:
     Changing the lambda reconstruction to 5 (putting adversarial doubling) - run 12 doesnt do much
     Changing adversarial to use log loss - run 13 - doesn't converge
     Changing to mean squared log error - run 14 - working... kinda works, nothing special.
+    Try a different log loss - run 15 - strggling to converge... 16 - Absolute failure as well.
 
 Plans:
 

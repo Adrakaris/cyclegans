@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 import os
 import random
+import sys 
 
 from sklearn.model_selection import train_test_split 
 
@@ -61,6 +62,19 @@ def generateImages(fontpath:str, outpath:str, res=128, characters=PRESETCHARACTE
         img.save(os.path.join(outpath, f"{i}.png"), "png")
 
 
+if __name__ == "__main__":
+    args = sys.argv
+    print(args)
+    if len(args) == 3:
+        generateImages(args[1], args[2])
+    elif len(args) == 4:
+        generateImages(args[1], args[2], int(args[3]))
+    elif len(args) == 5:
+        generateImages(args[1], args[2], int(args[3]), args[4])
+    else:
+        print("Args: <font path> <out folder> [resolution=128] [characters]")
+
+
 class Loader:
     def __init__(self, dataA, dataB, res=(128,128)) -> None:
         self.dataA = dataA
@@ -88,10 +102,10 @@ class Sampler:
     def __init__(self, fontURL) -> None:
         self.fontURL = fontURL
         
-    def generateImages(self, characters:str, res=128):
+    def generateImages(self, characters:str, res=128, shrink=30):
             
-        font = ImageFont.truetype(self.fontURL, size=res-20)  # was 30
-        WIDTH = res-20
+        font = ImageFont.truetype(self.fontURL, size=res-shrink)  # was 30
+        WIDTH = res-shrink
         HEIGHT = int(WIDTH*1)
         
         # total image width

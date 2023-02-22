@@ -40,7 +40,8 @@ class CycleGan:
                  epoch=0,
                  advLoss="mse",
                  cycleLoss="mae",
-                 idLoss="mae") -> None:
+                 idLoss="mae",
+                 discrimLoss="mse") -> None:
         
         """
         CycleGAN model.
@@ -67,6 +68,7 @@ class CycleGan:
         self.advLoss = advLoss
         self.cycleLoss = cycleLoss
         self.idLoss = idLoss
+        self.discLoss = discrimLoss
         
         self.epoch = epoch
         
@@ -105,6 +107,10 @@ class CycleGan:
         return 0.5 * np.add(daLoss, dbLoss)
     
     def trainGenerators(self, inAs, inBs, ONES, ZEROS):
+        # NOTE: diff training thing for hccyclegan
+        # contA = self.dA(inAs)
+        # contB = self.dB(inBs)
+        
         return self.combined.train_on_batch(
             [inAs, inBs],
             [ONES, ONES, inAs, inBs, inAs, inBs]
@@ -158,8 +164,8 @@ class CycleGan:
         self.dA = self.discriminator("disc-A")
         self.dB = self.discriminator("disc-B")
         
-        self.dA.compile(loss="mse", optimizer=Adam(self.lr, self.beta1), metrics=["accuracy"])
-        self.dB.compile(loss="mse", optimizer=Adam(self.lr, self.beta1), metrics=["accuracy"])
+        self.dA.compile(loss=self.discLoss, optimizer=Adam(self.lr, self.beta1), metrics=["accuracy"])
+        self.dB.compile(loss=self.discLoss, optimizer=Adam(self.lr, self.beta1), metrics=["accuracy"])
         
         self.gAB: Model
         self.gBA: Model 
@@ -195,9 +201,10 @@ class CycleGan:
         # identity
         idA = self.gBA(inA)
         idB = self.gAB(inB)
-        # adversarial loss
+        # adversarial loss 
         validA = self.dA(fakeA)
         validB = self.dB(fakeB)
+        
         # combined
         self.combined = Model(
             inputs=[inA, inB],
@@ -289,7 +296,8 @@ class CycleGan:
         # upsampling
         u1 = convTransposeBlock(d5, 64, 3, initialiser=self.winit)
         u2 = convTransposeBlock(u1, 32, 3, initialiser=self.winit)
-        out = Conv2D(filters=3, kernel_size=7, strides=1, padding="same", kernel_initializer=self.winit, activation="tanh")(u2)
+        out = Conv2D(filters=3, kernel_size=7, strides=1, padding="same", 
+                     kernel_initializer=self.winit, activation="tanh")(u2)
         
         return Model(img, out, name=name)
 
@@ -320,7 +328,6 @@ class CycleGan:
     
     def generatorDeformableDensenet(self, name):
         """Densenet architecture with He initialisation on deform conv layers
-        # TODO: haha this does not work
         Please only do batch size 1"""
         img = Input(shape=self.inputDim)
         
