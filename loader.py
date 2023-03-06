@@ -124,21 +124,6 @@ class Sampler:
     def stitchImages(self, images, characterRes=128, columns=16):
         # # work out full image width and height
         imRows = math.ceil(images.shape[0] / columns)
-        # rows = []
-        # # split list into rows
-        # for i in range(imRows):
-        #     rows.append(images[i*imRows:i*imRows+columns])
-        # # render every line
-        # lines = []
-        # for row in rows:
-        #     line = Image.new("RGB", (characterRes*imRows, characterRes*columns), color="white")
-        #     draw = ImageDraw.Draw(line)
-        #     for i, char in enumerate(row):
-        #         ic = Image.fromarray(char)
-        #         # draw.bitmap((i*characterRes, 0), )
-        #         line.paste(ic, (i*characterRes, 0))
-        #     lines.append(line)
-        # block = cv2.vconcat(lines)  # type:ignore
         
         BLANK = np.ones((128,128,3))
         
@@ -159,6 +144,32 @@ class Sampler:
             # rows.append(img)
             rows.append(row)
         block = cv2.vconcat(np.array(rows))  
+        
+        return block 
+    
+    def stitchImagesVert(self, images, characterRes=128, columns=16):
+        # # work out full image width and height
+        imRows = math.ceil(images.shape[0] / columns)
+        
+        BLANK = np.ones((128,128,3))
+        
+        rows = []
+        for i in range(imRows):
+            # print(f"row {i*columns} col {i*columns+columns}")
+            row = list(images[i*columns:i*columns+columns])
+            # print(f"len row {len(row)} row0 {row[0].shape}")
+            while len(row) != columns:
+                row.append(BLANK)
+            # print(f"len row {len(row)}")
+            row = cv2.vconcat(np.array(row))
+            # print(f"row shape {row.shape}")
+            # row = cv2.resize(row, )
+            # img = Image.new("RGB", (characterRes*columns, characterRes))
+            # img.paste(row, (0,0,characterRes,len(row)*characterRes))
+            # img.paste(row)
+            # rows.append(img)
+            rows.append(row)
+        block = cv2.hconcat(np.array(list(reversed(rows))))  
         
         return block 
     

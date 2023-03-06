@@ -1,6 +1,5 @@
 from collections import deque
 from datetime import datetime
-from mimetypes import init
 import os
 from enum import Enum
 import random

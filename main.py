@@ -1,4 +1,3 @@
-from distutils.command import build
 import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 import matplotlib.pyplot as plt 
@@ -10,14 +9,6 @@ from loader import KindaLoadEverything
 
 import absl.logging
 absl.logging.set_verbosity(absl.logging.ERROR)
-
-
-def hc_logloss(y_true, y_pred):
-    """
-    LGan = log(1-Dg(G(x))) + log(Dg(y))
-    former is y pred, latter is y true
-    """
-    return tf.math.log(1 - y_pred) + tf.math.log(y_true)
 
 
 #region setup
