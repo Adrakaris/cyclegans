@@ -181,7 +181,6 @@ class CycleGan:
             self.gAB = self.generatorDensenetWithSkip("densSkipNet_g_A_to_B")
             self.gBA = self.generatorDensenetWithSkip("densSkipNet_g_B_to_A")
         elif self.genType == GenType.DEFORMDENS:
-            # raise Exception("this doesn't work well")
             self.gAB = self.generatorDeformableDensenet("deformDense_g_A_to_B")
             self.gBA = self.generatorDeformableDensenet("deformDense_g_B_to_A")
         
